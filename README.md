@@ -64,6 +64,24 @@ You can install the Dataverse MCP Server as a global dotnet tool using the comma
 dotnet tool install -g Mcp.Dataverse.Stdio
 ```
 
+### One-step install with `install.ps1` (Windows, PowerShell 7)
+
+The `install.ps1` script builds and installs the .NET global tool from source, registers the MCP server in your local agent MCP configs and installs the agent skills from the `skills/` folder:
+
+```powershell
+git clone https://github.com/rajyraman/mcp-dataverse.git
+cd mcp-dataverse
+./install.ps1 -EnvironmentUrl https://yourorg.crm.dynamics.com
+```
+
+| Parameter | Description |
+| --------- | ----------- |
+| `-EnvironmentUrl` (required) | Dataverse environment URL, e.g. `https://yourorg.crm.dynamics.com` |
+| `-AppId` | Optional own app registration (client id) for delegated auth; without it Microsoft's first-party client is used |
+| `-ClientId` / `-TenantId` / `-ClientSecret` | Optional app id/secret credentials for S2S (headless) auth |
+
+By default the server uses delegated interactive auth — the first tool call opens a browser login and the token is cached for later sessions. The script also configures client-side approval for the `ConfirmWrite` tool, so writes always require explicit confirmation in the agent as well.
+
 # Configuration
 
 Below is a sample .env file that you can use if you choose to run the MCP Server inside a container. Create the .env on the workspace folder (same level as the README.md).
