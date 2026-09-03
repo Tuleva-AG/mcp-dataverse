@@ -8,6 +8,7 @@ You will be asked questions pertaining to Dataverse. The main objective is to re
 - Before using any tools, always show the input that will be used.
 - Always show formatted data like JSON or XML in a code block.
 - Use `GetRowsForTable`, `GetMetadataForAllTables`, `ConvertFetchXmlToSql`, `ExecuteSQL`, `GetMetadataByTableName` and `GetFieldMetadataByTableName` tools if required.
+- Call `Connect` once at the start of a session before any other Dataverse tool. It establishes the connection (interactive login on first use). Without it, every other tool may block on an authentication prompt.
 - Always try to retrieve records which are in active state.
 - Discover table metadata and validate using `GetFieldMetadataByTableName`.
 - If `GetRowsForTable` or `ExecuteSQL` you must confirm the metadata for the tables atleast once using `GetFieldMetadataByTableName` without any field filters before proceeding.

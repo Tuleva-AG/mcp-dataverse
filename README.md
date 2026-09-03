@@ -2,6 +2,14 @@
 
 The objective of this repo is to enable querying of Dataverse environment using SQL. You can use popular AI tools such as GitHub Copilot or Claude Desktop to query Dataverse, provided you add this MCP Server in the configuration.
 
+## What's new
+
+- **.NET 10** and Sql4Cds Engine 10.4.4.
+- **New `Connect` tool** – establishes the Dataverse connection (interactive browser login on first use, silent afterwards via a persistent token cache). Call it once per session before any other Dataverse tool. Azure CLI login is no longer required; app id/secret (S2S) is still supported for headless scenarios via `AZURE_CLIENT_ID`/`AZURE_CLIENT_SECRET`/`AZURE_TENANT_ID`.
+- **Write support with a server-enforced approval gate** – `ExecuteSQL` now accepts `INSERT`/`UPDATE`. Writes run in two phases: `ExecuteSQL` returns a preview with a confirm token (nothing is written yet), and only `ConfirmWrite(token)` executes it. Tokens are single-use and expire after 5 minutes. `DELETE` is rejected, `UPDATE` without `WHERE` is rejected, batches are rejected.
+- **`bypassCustomPlugins` flag** on `ExecuteSQL` – skips registered plugin steps and real-time workflows during writes (requires system admin privileges; only use when explicitly asked).
+- **Agent skills** – `skills/dataverse-query` and `skills/dataverse-write` document the SQL dialect, the approval flow and safety rules for coding agents.
+
 A big thank you to [Mark Carrington](https://www.linkedin.com/in/MarkMpn/) for creating [Sql4Cds](https://github.com/MarkMpn/Sql4Cds), without whom this project would not exist. 🙏
 
 # Prerequisites 🔍
@@ -9,7 +17,7 @@ A big thank you to [Mark Carrington](https://www.linkedin.com/in/MarkMpn/) for c
 1. VSCode March (minimum March 2025 version) or Claude Desktop
 2. Azure CLI installed and authenticated on your local machine, if you are not using the DevContainer option. While interactive browser authentication is possible using Azure Identity framework, using Azure CLI to manage the authentication is little easier.
 3. [Docker](https://docker.com), if you want to run Dev Containers or the MCP Server inside DevContainer.
-4. dotnet 9.0 SDK if you want to install the dotnet tool.
+4. dotnet 10.0 SDK if you want to install the dotnet tool.
 
 ## Model Context Protocol (MCP) 📋
 
@@ -48,7 +56,7 @@ Below is the recommendation based on the where you plan to use this MCP
 | Linux             | Claude Desktop, GitHub Copilot | dotnet tool                                                          |
 | GitHub Codespaces | GitHub Copilot                 | dotnet tool                                                          |
 
-Since this MCP server is built with [MCP C# SDK](https://github.com/modelcontextprotocol/csharp-sdk), it is distributed via nuget as a dotnet tool. dotnet 9.0 SDK can be installed in all major OSes.
+Since this MCP server is built with [MCP C# SDK](https://github.com/modelcontextprotocol/csharp-sdk), it is distributed via nuget as a dotnet tool. dotnet 10.0 SDK can be installed in all major OSes.
 
 You can install the Dataverse MCP Server as a global dotnet tool using the command below.
 

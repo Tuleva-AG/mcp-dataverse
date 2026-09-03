@@ -1,17 +1,19 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net9.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Azure.Identity" Version="1.13.2" />
-    <PackageReference Include="MarkMpn.Sql4Cds.Engine" Version="9.6.0" />
+    <PackageReference Include="MarkMpn.Sql4Cds.Engine" Version="10.4.4" />
     <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="9.0.4" />
-    <PackageReference Include="Microsoft.PowerPlatform.Dataverse.Client.AzAuth" Version="1.1.13" />
+    
     <PackageReference Include="ModelContextProtocol" Version="0.1.0-preview.11" />
+    <!-- direct ref to pull patched version of transitive vulnerable dep (NU1903, GHSA-555c-2p6r-68mm) -->
+    <PackageReference Include="System.Security.Cryptography.Pkcs" Version="9.0.19" />
   </ItemGroup>
 
   <ItemGroup>

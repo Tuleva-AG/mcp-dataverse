@@ -485,3 +485,6 @@ $RECYCLE.BIN/
 *.swp
 
 !/.devcontainer/nuget-tool/dataverse-nosecrets.env
+
+# local tool packages from install.ps1
+nupkgs/

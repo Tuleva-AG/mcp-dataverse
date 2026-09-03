@@ -4,7 +4,7 @@ using ModelContextProtocol.Server;
 using System.ComponentModel;
 using System.Text;
 
-namespace DataverseMcpServer.Core.Prompts;
+namespace Mcp.Dataverse.Core.Prompts;
 [McpServerPromptType]
 public class DataversePrompts
 {
