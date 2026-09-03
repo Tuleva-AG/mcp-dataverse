@@ -1,6 +1,7 @@
 ﻿using System.Collections.Concurrent;
 using System.Text.RegularExpressions;
 using MarkMpn.Sql4Cds.Engine;
+using Mcp.Dataverse.Core.Extensions;
 using Microsoft.Extensions.Caching.Memory;
 using ModelContextProtocol;
 using ModelContextProtocol.Server;
@@ -107,6 +108,7 @@ public sealed class DataverseTool
     [McpServerTool, Description("Executes an SQL query against Dataverse. SELECT returns results directly. INSERT/UPDATE return a preview plus a confirm token - the write only executes after ConfirmWrite(token). DELETE is not allowed." + ConnectHint)]
     public static async Task<string> ExecuteSQL(
         Sql4CdsConnection sql4cdsConnection,
+        DataverseGateOptions gateOptions,
         [Description("A single SQL statement: SELECT to read, or INSERT/UPDATE to write (write requires confirmation via ConfirmWrite). Multiple statements are not allowed.")] string sqlQuery,
         [Description("Bypasses registered plugin steps and real-time workflows during INSERT/UPDATE. Requires system administrator privileges. Ask the user before setting this to true.")] bool bypassCustomPlugins = false)
     {
@@ -139,6 +141,20 @@ public sealed class DataverseTool
                 if (fromMatch.Success) linkTable = fromMatch.Groups[1].Value.ToLowerInvariant();
             }
             return await ExecuteSelect(sqlQuery, sql4cdsConnection, linkTable);
+        }
+        if (!gateOptions.RequireApproval)
+        {
+            // gate disabled via DATAVERSE_APPROVAL_GATE=off: execute the write directly
+            var affectedDirect = await ExecuteNonQuery(statement, sql4cdsConnection, bypassCustomPlugins);
+            var directLinks = await WriteRecordLinks(statement, sql4cdsConnection);
+            return $"""
+            <write_executed>
+                <statement>{statement}</statement>
+                <affected_rows>{affectedDirect}</affected_rows>
+                <bypass_custom_plugins>{(bypassCustomPlugins ? "yes" : "no")}</bypass_custom_plugins>
+            </write_executed>
+            {directLinks}
+            """;
         }
         return await CreateWritePreview(sqlQuery, words, sql4cdsConnection, bypassCustomPlugins);
     }

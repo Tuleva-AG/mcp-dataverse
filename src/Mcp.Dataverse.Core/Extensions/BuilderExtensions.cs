@@ -11,6 +11,13 @@ using ModelContextProtocol;
 using System;
 namespace Mcp.Dataverse.Core.Extensions;
 
+// two-phase write approval (preview + ConfirmWrite). off = ExecuteSQL executes INSERT/UPDATE
+// directly. DELETE-reject, WHERE-pflicht and single-statement rules stay enforced either way.
+public sealed class DataverseGateOptions
+{
+    public bool RequireApproval { get; init; } = true;
+}
+
 public static class BuilderExtensions
 {
     private enum AuthMode { Delegated, S2S }
@@ -33,6 +40,17 @@ public static class BuilderExtensions
             AuthMode.S2S => CreateS2SCredential(),
             _ => throw new InvalidOperationException("unreachable")
         };
+
+        var gate = Environment.GetEnvironmentVariable("DATAVERSE_APPROVAL_GATE")?.ToLowerInvariant();
+        builder.Services.AddSingleton(new DataverseGateOptions
+        {
+            RequireApproval = gate switch
+            {
+                null or "" or "on" => true,
+                "off" => false,
+                var other => throw new McpException($"Unknown DATAVERSE_APPROVAL_GATE '{other}'. Valid values: on, off.")
+            }
+        });
 
         builder.Services.AddSingleton(credential);
         builder.Services.AddSingleton(sp =>
@@ -117,4 +135,5 @@ public static class BuilderExtensions
         }
         return new ClientSecretCredential(tenantId, clientId, clientSecret);
     }
+
 }
