@@ -24,7 +24,7 @@
 	<ItemGroup>
 		<PackageReference Include="Microsoft.Extensions.Hosting" Version="9.0.3" />
 		<PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.21.2" />
-		<PackageReference Include="ModelContextProtocol.AspNetCore" Version="0.1.0-preview.8" />
+		<PackageReference Include="ModelContextProtocol.AspNetCore" Version="0.1.0-preview.11" />
 	</ItemGroup>
 	<ItemGroup>
 		<ProjectReference Include="..\Mcp.Dataverse.Core\Mcp.Dataverse.Core.csproj" />

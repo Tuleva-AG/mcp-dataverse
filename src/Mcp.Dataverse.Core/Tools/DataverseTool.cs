@@ -1,6 +1,7 @@
 ﻿using System.Collections.Concurrent;
 using System.Text.RegularExpressions;
 using MarkMpn.Sql4Cds.Engine;
+using Mcp.Dataverse.Core.Extensions;
 using Microsoft.Extensions.Caching.Memory;
 using ModelContextProtocol;
 using ModelContextProtocol.Server;
@@ -107,6 +108,7 @@ public sealed class DataverseTool
     [McpServerTool, Description("Executes an SQL query against Dataverse. SELECT returns results directly. INSERT/UPDATE return a preview plus a confirm token - the write only executes after ConfirmWrite(token). DELETE is not allowed." + ConnectHint)]
     public static async Task<string> ExecuteSQL(
         Sql4CdsConnection sql4cdsConnection,
+        DataverseGateOptions gateOptions,
         [Description("A single SQL statement: SELECT to read, or INSERT/UPDATE to write (write requires confirmation via ConfirmWrite). Multiple statements are not allowed.")] string sqlQuery,
         [Description("Bypasses registered plugin steps and real-time workflows during INSERT/UPDATE. Requires system administrator privileges. Ask the user before setting this to true.")] bool bypassCustomPlugins = false)
     {
@@ -122,7 +124,6 @@ public sealed class DataverseTool
         }
         if (first == "WITH" && words.Any(w => w is "UPDATE" or "INSERT" or "DELETE"))
         {
-            // ponytail: CTE+DML support unknown in Sql4Cds 10.4.4 - reject instead of risking a gate bypass
             throw new McpException("DML inside WITH/CTE statements is not supported. Use a plain INSERT or UPDATE statement.");
         }
         if (!IsSingleStatement(masked))
@@ -139,6 +140,20 @@ public sealed class DataverseTool
                 if (fromMatch.Success) linkTable = fromMatch.Groups[1].Value.ToLowerInvariant();
             }
             return await ExecuteSelect(sqlQuery, sql4cdsConnection, linkTable);
+        }
+        if (!gateOptions.RequireApproval)
+        {
+            // gate disabled via DATAVERSE_APPROVAL_GATE=off: execute the write directly
+            var affectedDirect = await ExecuteNonQuery(statement, sql4cdsConnection, bypassCustomPlugins);
+            var directLinks = await WriteRecordLinks(statement, sql4cdsConnection);
+            return $"""
+            <write_executed>
+                <statement>{statement}</statement>
+                <affected_rows>{affectedDirect}</affected_rows>
+                <bypass_custom_plugins>{(bypassCustomPlugins ? "yes" : "no")}</bypass_custom_plugins>
+            </write_executed>
+            {directLinks}
+            """;
         }
         return await CreateWritePreview(sqlQuery, words, sql4cdsConnection, bypassCustomPlugins);
     }
@@ -207,9 +222,6 @@ public sealed class DataverseTool
         """;
     }
 
-    // ponytail: regex estimate covers simple single-table UPDATEs only; joins, brackets or
-    // multi-part names yield "n/a (complex statement)" instead of a count. Upgrade path:
-    // parse via the Sql4Cds engine AST if estimates matter more.
     private static async Task<string> TryBuildRowCountEstimate(string statement, bool isUpdate, Sql4CdsConnection sql4cdsConnection)
     {
         if (!isUpdate) return "n/a (insert)";
@@ -350,9 +362,6 @@ public sealed class DataverseTool
     {
         using Sql4CdsCommand cmd = sql4cdsConnection.CreateCommand();
         cmd.CommandText = query;
-        // ponytail: BypassCustomPlugins is a connection-level property; set/reset around the
-        // DML call. A concurrent write on the same connection could observe the flag - not
-        // realistic in a single MCP session (writes are serialized through the confirm gate).
         var previous = sql4cdsConnection.BypassCustomPlugins;
         sql4cdsConnection.BypassCustomPlugins = bypassCustomPlugins;
         try
@@ -371,9 +380,6 @@ public sealed class DataverseTool
 
     private const int MaxRecordLinks = 20;
 
-    // ponytail: only rows with a Guid in the "<table>id" column get links; custom primary
-    // key names, joined or aliased queries return no links. Upgrade path: resolve the real
-    // primary id attribute from metadata.attribute (isprimaryid = 1).
     private static string AppendRecordLinks(string output, string linkTable, Sql4CdsConnection sql4cdsConnection, List<Dictionary<string, object>> rows)
     {
         var idColumn = linkTable + "id";

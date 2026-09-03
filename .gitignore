@@ -488,3 +488,5 @@ $RECYCLE.BIN/
 
 # local tool packages from install.ps1
 nupkgs/
+.pi/
+/src/Mcp.Dataverse.SSE/Properties/launchSettings.local.json

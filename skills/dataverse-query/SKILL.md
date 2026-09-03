@@ -27,7 +27,9 @@ Read data from Microsoft Dataverse using the `mcp-dataverse` MCP server.
 - Logical collection names work: `SELECT fullname, emailaddress1 FROM contact WHERE ...`
 - Metadata is queryable as pseudo-tables: `metadata.entity`, `metadata.attribute`.
 - Row limits: always use `TOP(n)` on exploratory queries.
-- `ExecuteSQL` accepts **SELECT only** in read mode. For writes, see the `dataverse-write` skill.
+- `ExecuteSQL` accepts **SELECT** here. For writes, see the `dataverse-write` skill (and its
+  field selection workflow - fetch field metadata and resolve ambiguous fields with the user
+  before writing).
 
 ## FetchXML
 

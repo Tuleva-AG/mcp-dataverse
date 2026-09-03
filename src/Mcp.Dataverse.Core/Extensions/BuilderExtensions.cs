@@ -11,6 +11,13 @@ using ModelContextProtocol;
 using System;
 namespace Mcp.Dataverse.Core.Extensions;
 
+// two-phase write approval (preview + ConfirmWrite). off = ExecuteSQL executes INSERT/UPDATE
+// directly. DELETE-reject, WHERE-pflicht and single-statement rules stay enforced either way.
+public sealed class DataverseGateOptions
+{
+    public bool RequireApproval { get; init; } = true;
+}
+
 public static class BuilderExtensions
 {
     private enum AuthMode { Delegated, S2S }
@@ -34,6 +41,17 @@ public static class BuilderExtensions
             _ => throw new InvalidOperationException("unreachable")
         };
 
+        var gate = Environment.GetEnvironmentVariable("DATAVERSE_APPROVAL_GATE")?.ToLowerInvariant();
+        builder.Services.AddSingleton(new DataverseGateOptions
+        {
+            RequireApproval = gate switch
+            {
+                null or "" or "on" => true,
+                "off" => false,
+                var other => throw new McpException($"Unknown DATAVERSE_APPROVAL_GATE '{other}'. Valid values: on, off.")
+            }
+        });
+
         builder.Services.AddSingleton(credential);
         builder.Services.AddSingleton(sp =>
         {
@@ -48,7 +66,7 @@ public static class BuilderExtensions
                     AccessTokenProviderFunctionAsync = async instanceUri =>
                     {
                         // instanceUri is the full Organization.svc endpoint (incl. query string) - the
-                        // token resource must be the bare origin, e.g. https://yourorg-dev.crm4.dynamics.com/.default
+                        // token resource must be the bare origin, e.g. https://instance.crm4.dynamics.com/.default
                         var origin = new Uri(instanceUri).GetLeftPart(UriPartial.Authority);
                         await tokenLock.WaitAsync(CancellationToken.None);
                         try
@@ -89,10 +107,6 @@ public static class BuilderExtensions
         };
     }
 
-    // ponytail: default client = Microsoft first-party "Dynamics 365 Example Client Application"
-    // (learn.microsoft.com/power-platform/admin/apps-to-allow) so interactive login works without
-    // an own app registration. Set DATAVERSE_APP_ID to use your own app reg. If a tenant blocks
-    // user consent for first-party apps or the redirect isn't accepted, an own app reg is required.
     private const string DefaultDelegatedClientId = "51f81489-12ee-4a9e-aaae-a2591f45987d";
 
     private static TokenCredential CreateDelegatedCredential()
@@ -117,4 +131,5 @@ public static class BuilderExtensions
         }
         return new ClientSecretCredential(tenantId, clientId, clientSecret);
     }
+
 }

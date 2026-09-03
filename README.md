@@ -112,6 +112,19 @@ If you are using this MCP Server on a new folder (not in the cloned repo), make 
 }
 ```
 
+### Optional environment variables
+
+| Variable | Values | Description |
+| -------- | ------ | ----------- |
+| `DATAVERSE_ENVIRONMENT_URL` (required) | URL | Dataverse environment, e.g. `https://abc.crm6.dynamics.com` |
+| `DATAVERSE_AUTH_MODE` | `auto` (default), `delegated`, `s2s` | `auto` uses S2S when `AZURE_CLIENT_SECRET` is set, else delegated interactive login |
+| `AZURE_CLIENT_ID` | client id (GUID) | Confidential Entra app registration client id for S2S auth |
+| `AZURE_CLIENT_SECRET` | secret value | Confidential Entra app registration secret for S2S auth; never commit this value |
+| `AZURE_TENANT_ID` | tenant id (GUID) | Entra tenant containing the app registration for S2S auth |
+| `PORT` | port number | HTTP/SSE listener port; App Service commonly uses `8080` |
+| `DATAVERSE_APP_ID` | client id (GUID) | Own app registration for delegated auth; defaults to Microsoft's first-party client |
+| `DATAVERSE_APPROVAL_GATE` | `on` (default), `off` | `off` executes INSERT/UPDATE immediately without the preview/ConfirmWrite two-phase approval. DELETE, UPDATE-without-WHERE and multi-statement batches stay rejected either way. Only disable for trusted automation. |
+
 # Configuration for GitHub Codespaces
 
 When you create you Codespace make sure you select the [devcontainer.json](.devcontainer/nuget-tool/devcontainer.json) inside the [nuget-tool](.devcontainer/nuget-tool/) folder. You should also change the [dataverse-nosecrets.env](.devcontainer/nuget-tool/dataverse-nosecrets.env) so that the DATAVERSE_ENVIRONMENT_URL environment variable is pointing to the right environment URL.

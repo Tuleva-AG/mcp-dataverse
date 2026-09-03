@@ -6,17 +6,31 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 
 var builder = WebApplication.CreateBuilder(args);
-builder.WebHost.ConfigureKestrel(options =>
+if (int.TryParse(Environment.GetEnvironmentVariable("PORT"), out var port))
 {
-    options.ListenLocalhost(3001);
-});
+    builder.WebHost.ConfigureKestrel(options => options.ListenAnyIP(port));
+}
 
 builder.AddDataverse();
 builder.Services.AddMemoryCache();
+builder.Services.AddCors(options =>
+{
+    options.AddDefaultPolicy(policy =>
+    {
+        policy.AllowAnyOrigin()
+              .AllowAnyHeader()
+              .AllowAnyMethod();
+    });
+});
 builder.Services.AddMcpServer()
     .WithPrompts<QueryPrompts>()
     .WithPrompts<DataversePrompts>()
+    .WithHttpTransport()
     .WithTools<DataverseTool>();
+
 var app = builder.Build();
-app.MapMcp();
+app.UseCors();
+app.MapGet("/", () => new { status = "running", service = "Dataverse MCP" });
+app.MapGet("/health", () => new { status = "ok" });
+app.MapMcp("/api/mcp");
 app.Run();

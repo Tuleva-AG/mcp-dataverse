@@ -1,13 +1,17 @@
 {
   "profiles": {
     "Executable": {
-      "commandName": "Project"
-    },
-    "Container (Dockerfile)": {
-      "commandName": "Docker"
-    },
-    "Container (.NET SDK)": {
-      "commandName": "SdkContainer"
+      "commandName": "Project",
+      "environmentVariables": {
+        "DATAVERSE_ENVIRONMENT_URL": "https://your-environment.crm.dynamics.com",
+        "DATAVERSE_AUTH_MODE": "delegated",
+        "DATAVERSE_APPROVAL_GATE": "off",
+        "DATAVERSE_APP_ID": "51f81489-12ee-4a9e-aaae-a2591f45987d",
+        "AZURE_CLIENT_ID": "",
+        "AZURE_CLIENT_SECRET": "",
+        "AZURE_TENANT_ID": "",
+        "PORT": "3001"
+      }
     }
   }
 }

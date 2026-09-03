@@ -27,6 +27,35 @@ flag, and the executed write reports it again.
 
 Never call `ConfirmWrite` without prior user approval. Never batch-approve multiple previews.
 
+The gate is on by default. A server started with `DATAVERSE_APPROVAL_GATE=off` executes
+INSERT/UPDATE immediately (response contains `<write_executed>`, no confirm token) - do not
+call `ConfirmWrite` in that mode. Safety rules (no DELETE, UPDATE requires WHERE, single
+statement) still apply.
+
+## Field selection workflow (always, before composing the statement)
+
+1. **Fetch field metadata first (mandatory).** Call `GetFieldMetadataByTableName` for the target
+   table. For INSERT only use fields with `isvalidforcreate = 1`; for UPDATE only fields with
+   `isvalidforupdate = 1`. Note required (business-required) fields of the table - an INSERT
+   missing them will fail.
+2. **Set only the requested fields.** Map the user's request to logical field names from the
+   metadata. Never add "helpful" extra fields the user did not ask for.
+3. **Ambiguous fields -> ask, don't guess.** If the user's wording (e.g. "email", "phone",
+   "name") matches several fields, list the candidates and let the user pick. Typical collisions:
+   `emailaddress1/2/3`, `telephone1/mobilephone/fax`, `firstname`/`fullname`/`nickname`,
+   standard fields vs. similarly named custom fields (often prefixed like `new_` or `cr123_`).
+   Ask before writing - never silently pick one.
+
+Example flow:
+```sql
+-- 1. check candidate fields and their create/update validity
+SELECT logicalname, isvalidforcreate, isvalidforupdate, isnullable
+FROM metadata.attribute WHERE attribute.entitylogicalname = 'contact'
+  AND (logicalname LIKE '%email%' OR logicalname LIKE '%phone%')
+-- 2. ask the user which field to use if several match
+-- 3. only then compose the INSERT/UPDATE and run it through the gate
+```
+
 ## Rules enforced by the server
 
 - **INSERT/UPDATE only** — `DELETE` is rejected outright.
