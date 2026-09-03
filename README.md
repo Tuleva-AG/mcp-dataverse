@@ -82,6 +82,69 @@ cd mcp-dataverse
 
 By default the server uses delegated interactive auth — the first tool call opens a browser login and the token is cached for later sessions. The script also configures client-side approval for the `ConfirmWrite` tool, so writes always require explicit confirmation in the agent as well.
 
+## Run with Pi or OpenCode
+
+Install the stdio server first:
+
+```powershell
+dotnet tool install -g Mcp.Dataverse.Stdio
+```
+
+The global tool exposes the `mcp-dataverse` command. Make sure `%USERPROFILE%\.dotnet\tools` is on `PATH`, then restart Pi or OpenCode after installation.
+
+### Pi
+
+Pi can use MCP configuration through [pi-mcp-adapter](https://github.com/nicobailon/pi-mcp-adapter). Add this to `.mcp.json` in your project (or your Pi MCP configuration file):
+
+```json
+{
+  "mcpServers": {
+    "dataverse-stdio": {
+      "command": "mcp-dataverse",
+      "env": {
+        "DATAVERSE_ENVIRONMENT_URL": "https://yourorg.crm.dynamics.com",
+        "DATAVERSE_AUTH_MODE": "delegated",
+        "DATAVERSE_APPROVAL_GATE": "on"
+      }
+    },
+    "dataverse-sse": {
+      "url": "https://your-app.azurewebsites.net/api/mcp"
+    }
+  }
+}
+```
+
+Use `dataverse-stdio` for local interactive login. Use `dataverse-sse` for a deployed SSE server; its server-side identity must be configured separately.
+
+### OpenCode
+
+Add this to `opencode.json` for OpenCode v2:
+
+```json
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "servers": {
+      "dataverse-stdio": {
+        "type": "local",
+        "command": ["mcp-dataverse"],
+        "environment": {
+          "DATAVERSE_ENVIRONMENT_URL": "https://yourorg.crm.dynamics.com",
+          "DATAVERSE_AUTH_MODE": "delegated",
+          "DATAVERSE_APPROVAL_GATE": "on"
+        }
+      },
+      "dataverse-sse": {
+        "type": "remote",
+        "url": "https://your-app.azurewebsites.net/api/mcp"
+      }
+    }
+  }
+}
+```
+
+For S2S authentication on a local stdio server, replace `DATAVERSE_AUTH_MODE` with `s2s` and provide `AZURE_CLIENT_ID`, `AZURE_CLIENT_SECRET`, and `AZURE_TENANT_ID`. Do not commit the client secret. The SSE configuration does not contain credentials; S2S credentials belong in the deployed App Service settings.
+
 # Configuration
 
 Below is a sample .env file that you can use if you choose to run the MCP Server inside a container. Create the .env on the workspace folder (same level as the README.md).
@@ -112,7 +175,7 @@ If you are using this MCP Server on a new folder (not in the cloned repo), make 
 }
 ```
 
-### Optional environment variables
+### Environment variables
 
 | Variable | Values | Description |
 | -------- | ------ | ----------- |
