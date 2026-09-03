@@ -1,0 +1,10 @@
+{
+  "IsEncrypted": false,
+  "Values": {
+    "FUNCTIONS_WORKER_RUNTIME": "dotnet-isolated",
+    "AzureWebJobsFeatureFlags": "EnableMcpCustomHandlerPreview",
+    "DATAVERSE_ENVIRONMENT_URL": "https://yourorg.crm.dynamics.com",
+    "DATAVERSE_AUTH_MODE": "managedidentity",
+    "DATAVERSE_APPROVAL_GATE": "on"
+  }
+}

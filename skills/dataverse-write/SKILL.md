@@ -9,6 +9,8 @@ Create/update records via SQL through the `mcp-dataverse` MCP server. Every writ
 
 ## Before writing
 
+Before every MCP call, inspect the exact tool schema with `mcp describe`. Never infer tool names, parameter names, or payload casing from this document or from a tool list. Tool lists may show names only; `describe` is authoritative.
+
 Call `Connect` once at session start (interactive login on first use). A write attempt on an unauthenticated connection blocks on a login prompt instead of returning a preview.
 
 `ExecuteSQL` accepts `bypassCustomPlugins` (default `false`). It skips registered plugin steps and
@@ -18,12 +20,29 @@ flag, and the executed write reports it again.
 
 ## The gate (always two calls)
 
-1. **Preview**: send your `INSERT`/`UPDATE` to `ExecuteSQL`. The server returns
-   `<write_preview>` with target table, row estimate, the statement, and a `confirm_token`.
-   **Nothing has been written yet.**
+1. **Preview**: inspect `ExecuteSQL` with `mcp describe`, then send exactly this payload shape:
+
+   ```json
+   {
+     "sqlQuery": "INSERT or UPDATE statement",
+     "bypassCustomPlugins": false
+   }
+   ```
+
+   The server returns `<write_preview>` with target table, row estimate, the statement, and a
+   `confirm_token`. **Nothing has been written yet.**
 2. **Show the user** the preview (table, statement, estimated rows) and ask for explicit approval.
-3. **Execute**: only after the user approves, call `ConfirmWrite` with the `confirm_token`.
-   Tokens are single-use and expire after 5 minutes — if expired, re-run `ExecuteSQL`.
+3. **Execute**: after approval, inspect `ConfirmWrite` with `mcp describe`, extract the
+   `confirm_token` value from the preview, and send exactly:
+
+   ```json
+   {
+     "token": "<confirm_token from ExecuteSQL>"
+   }
+   ```
+
+   The tool parameter is `token`, not `confirm_token`. Tokens are single-use and expire after
+   5 minutes — if expired, re-run `ExecuteSQL`.
 
 Never call `ConfirmWrite` without prior user approval. Never batch-approve multiple previews.
 
@@ -34,10 +53,11 @@ statement) still apply.
 
 ## Field selection workflow (always, before composing the statement)
 
-1. **Fetch field metadata first (mandatory).** Call `GetFieldMetadataByTableName` for the target
-   table. For INSERT only use fields with `isvalidforcreate = 1`; for UPDATE only fields with
-   `isvalidforupdate = 1`. Note required (business-required) fields of the table - an INSERT
-   missing them will fail.
+1. **Fetch field metadata first (mandatory).** Inspect `GetFieldMetadataByTableName` with
+   `mcp describe`, then call it for the target table. For INSERT only use fields with
+   `isvalidforcreate = 1`; for UPDATE only fields with `isvalidforupdate = 1`. Determine required
+   fields only from properties actually returned by the metadata schema. Never invent or assume a
+   property such as `isrequiredbyform` without schema evidence.
 2. **Set only the requested fields.** Map the user's request to logical field names from the
    metadata. Never add "helpful" extra fields the user did not ask for.
 3. **Ambiguous fields -> ask, don't guess.** If the user's wording (e.g. "email", "phone",

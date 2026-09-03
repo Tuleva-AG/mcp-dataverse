@@ -143,7 +143,9 @@ Add this to `opencode.json` for OpenCode v2:
 }
 ```
 
-For S2S authentication on a local stdio server, replace `DATAVERSE_AUTH_MODE` with `s2s` and provide `AZURE_CLIENT_ID`, `AZURE_CLIENT_SECRET`, and `AZURE_TENANT_ID`. Do not commit the client secret. The SSE configuration does not contain credentials; S2S credentials belong in the deployed App Service settings.
+For S2S authentication on a local stdio server, replace `DATAVERSE_AUTH_MODE` with `s2s` and provide `AZURE_CLIENT_ID`, `AZURE_CLIENT_SECRET`, and `AZURE_TENANT_ID`. Do not commit the client secret.
+
+On App Service (SSE) and Azure Functions, prefer `DATAVERSE_AUTH_MODE=managedidentity`. Enable a system-assigned or user-assigned managed identity on the app, create a Dataverse application user for that identity, and grant a security role. For user-assigned identity, set `AZURE_CLIENT_ID` to the identity client id. Do not set `AZURE_CLIENT_SECRET`. SSE and Functions configs do not contain credentials; identity lives in Azure.
 
 # Configuration
 
@@ -180,13 +182,27 @@ If you are using this MCP Server on a new folder (not in the cloned repo), make 
 | Variable | Values | Description |
 | -------- | ------ | ----------- |
 | `DATAVERSE_ENVIRONMENT_URL` (required) | URL | Dataverse environment, e.g. `https://abc.crm6.dynamics.com` |
-| `DATAVERSE_AUTH_MODE` | `auto` (default), `delegated`, `s2s` | `auto` uses S2S when `AZURE_CLIENT_SECRET` is set, else delegated interactive login |
-| `AZURE_CLIENT_ID` | client id (GUID) | Confidential Entra app registration client id for S2S auth |
+| `DATAVERSE_AUTH_MODE` | `auto` (default), `delegated`, `s2s`, `managedidentity` | `auto` uses S2S when `AZURE_CLIENT_SECRET` is set, else delegated interactive login. `managedidentity` uses the App Service or Functions managed identity (recommended for SSE and Azure Functions). |
+| `AZURE_CLIENT_ID` | client id (GUID) | S2S app registration client id, or user-assigned managed identity client id. Omit for system-assigned identity. |
 | `AZURE_CLIENT_SECRET` | secret value | Confidential Entra app registration secret for S2S auth; never commit this value |
 | `AZURE_TENANT_ID` | tenant id (GUID) | Entra tenant containing the app registration for S2S auth |
 | `PORT` | port number | HTTP/SSE listener port; App Service commonly uses `8080` |
 | `DATAVERSE_APP_ID` | client id (GUID) | Own app registration for delegated auth; defaults to Microsoft's first-party client |
 | `DATAVERSE_APPROVAL_GATE` | `on` (default), `off` | `off` executes INSERT/UPDATE immediately without the preview/ConfirmWrite two-phase approval. DELETE, UPDATE-without-WHERE and multi-statement batches stay rejected either way. Only disable for trusted automation. |
+
+## Azure Functions (custom handler)
+
+`src/Mcp.Dataverse.Functions` hosts the same MCP tools as SSE, using the [Azure Functions MCP SDK custom handler](https://learn.microsoft.com/en-us/azure/azure-functions/scenario-host-mcp-server-sdks) profile.
+
+Local:
+
+```powershell
+func start --script-root src/Mcp.Dataverse.Functions
+```
+
+MCP endpoint: `http://localhost:8080/mcp`
+
+Set `DATAVERSE_AUTH_MODE=managedidentity` in Function App settings. Enable a managed identity, add it as a Dataverse application user, and grant a security role. For user-assigned identity also set `AZURE_CLIENT_ID`. Do not set `AZURE_CLIENT_SECRET`.
 
 # Configuration for GitHub Codespaces
 

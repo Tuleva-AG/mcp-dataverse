@@ -4,11 +4,11 @@
   Installs the MCP Dataverse server locally and wires it into OpenCode and Pi.
 .DESCRIPTION
   1. Builds and installs the .NET global tool `mcp-dataverse`.
-  2. Registers the MCP server in the global OpenCode config (~/.config/opencode/opencode.json)
-     and the global shared MCP config (~/.config/mcp/mcp.json, read by pi-mcp-adapter).
-  3. Installs pi-mcp-adapter (Pi has no built-in MCP) and enables client-side approval
-     for ConfirmWrite.
+  2. Registers the MCP server for the selected client(s): OpenCode and/or Pi.
+  3. For Pi: installs pi-mcp-adapter and enables client-side approval for ConfirmWrite.
   4. Copies the skills to ~/.agents/skills/ (read by both Pi and OpenCode).
+.PARAMETER Clients
+  Pi, OpenCode, or Both. If omitted, the script asks interactively.
 .PARAMETER EnvironmentUrl
   Dataverse environment URL, e.g. https://yourorg.crm.dynamics.com
 .PARAMETER ClientId / TenantId / ClientSecret
@@ -24,6 +24,8 @@ param(
     [string]$ClientId,
     [string]$TenantId,
     [string]$ClientSecret,
+    [ValidateSet('Pi', 'OpenCode', 'Both')]
+    [string]$Clients,
     [string]$RepoRoot = $PSScriptRoot
 )
 
@@ -66,38 +68,54 @@ foreach ($pair in @(@('AZURE_CLIENT_ID', $ClientId), @('AZURE_TENANT_ID', $Tenan
     if ($pair[1]) { $envBlock[$pair[0]] = $pair[1] }
 }
 
+if ([string]::IsNullOrWhiteSpace($Clients)) {
+    $choice = Read-Host 'Install MCP config for [P]i, [O]penCode, or [B]oth? (P/O/B)'
+    $Clients = switch -Regex ($choice.Trim()) {
+        '^(?i)p(i)?$' { 'Pi' }
+        '^(?i)o(pencode)?$' { 'OpenCode' }
+        '^(?i)b(oth)?$' { 'Both' }
+        default { throw "Unknown choice '$choice'. Use P, O, or B (or -Clients Pi|OpenCode|Both)." }
+    }
+}
+$installPi = $Clients -ne 'OpenCode'
+$installOpenCode = $Clients -ne 'Pi'
+
 # --- 2. OpenCode config ----------------------------------------------------
-Write-Host '==> Configuring OpenCode...'
-Merge-JsonFile "$HOME/.config/opencode/opencode.json" {
-    param($json)
-    if (-not $json.mcp) { Add-JsonProperty $json 'mcp' (New-Object PSObject) }
-    $entry = New-Object PSObject
-    Add-JsonProperty $entry 'type' 'local'
-    Add-JsonProperty $entry 'command' @($serverName)
-    Add-JsonProperty $entry 'environment' $envBlock
-    Add-JsonProperty $json.mcp $serverName $entry
+if ($installOpenCode) {
+    Write-Host '==> Configuring OpenCode...'
+    Merge-JsonFile "$HOME/.config/opencode/opencode.json" {
+        param($json)
+        if (-not $json.mcp) { Add-JsonProperty $json 'mcp' (New-Object PSObject) }
+        $entry = New-Object PSObject
+        Add-JsonProperty $entry 'type' 'local'
+        Add-JsonProperty $entry 'command' @($serverName)
+        Add-JsonProperty $entry 'environment' $envBlock
+        Add-JsonProperty $json.mcp $serverName $entry
+    }
 }
 
 # --- 3. Pi via pi-mcp-adapter ----------------------------------------------
-Write-Host '==> Configuring Pi (pi-mcp-adapter)...'
-if (Get-Command pi -ErrorAction SilentlyContinue) {
-    pi install npm:pi-mcp-adapter
-    if ($LASTEXITCODE -ne 0) { Write-Warning 'pi install npm:pi-mcp-adapter failed - install it manually.' }
-} else {
-    Write-Host '    pi not found - skipping adapter install. Install pi, then run: pi install npm:pi-mcp-adapter'
-}
-Merge-JsonFile "$HOME/.config/mcp/mcp.json" {
-    param($json)
-    if (-not $json.mcpServers) { Add-JsonProperty $json 'mcpServers' (New-Object PSObject) }
-    $entry = New-Object PSObject
-    Add-JsonProperty $entry 'command' $serverName
-    Add-JsonProperty $entry 'env' $envBlock
-    Add-JsonProperty $json.mcpServers $serverName $entry
-    # client-side approval on top of the server-side gate (ConfirmWrite)
-    if (-not $json.settings) { Add-JsonProperty $json 'settings' (New-Object PSObject) }
-    if (-not $json.settings.approveTools) { Add-JsonProperty $json.settings 'approveTools' @() }
-    if ($json.settings.approveTools -notcontains '*ConfirmWrite*') {
-        Add-JsonProperty $json.settings 'approveTools' ($json.settings.approveTools + '*ConfirmWrite*')
+if ($installPi) {
+    Write-Host '==> Configuring Pi (pi-mcp-adapter)...'
+    if (Get-Command pi -ErrorAction SilentlyContinue) {
+        pi install npm:pi-mcp-adapter
+        if ($LASTEXITCODE -ne 0) { Write-Warning 'pi install npm:pi-mcp-adapter failed - install it manually.' }
+    } else {
+        Write-Host '    pi not found - skipping adapter install. Install pi, then run: pi install npm:pi-mcp-adapter'
+    }
+    Merge-JsonFile "$HOME/.config/mcp/mcp.json" {
+        param($json)
+        if (-not $json.mcpServers) { Add-JsonProperty $json 'mcpServers' (New-Object PSObject) }
+        $entry = New-Object PSObject
+        Add-JsonProperty $entry 'command' $serverName
+        Add-JsonProperty $entry 'env' $envBlock
+        Add-JsonProperty $json.mcpServers $serverName $entry
+        # client-side approval on top of the server-side gate (ConfirmWrite)
+        if (-not $json.settings) { Add-JsonProperty $json 'settings' (New-Object PSObject) }
+        if (-not $json.settings.approveTools) { Add-JsonProperty $json.settings 'approveTools' @() }
+        if ($json.settings.approveTools -notcontains '*ConfirmWrite*') {
+            Add-JsonProperty $json.settings 'approveTools' ($json.settings.approveTools + '*ConfirmWrite*')
+        }
     }
 }
 

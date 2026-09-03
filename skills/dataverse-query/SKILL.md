@@ -7,6 +7,14 @@ description: Query Microsoft Dataverse via the mcp-dataverse MCP server - metada
 
 Read data from Microsoft Dataverse using the `mcp-dataverse` MCP server.
 
+## Tool schema first
+
+Before every MCP call, inspect the exact tool schema with `mcp describe`. Never infer tool names,
+parameter names, payload casing, or response fields from this document or from a tool list. Tool
+lists may show names only; `describe` is authoritative. If metadata does not expose a property,
+do not invent one or query it. For example, never assume a field such as `isrequiredbyform`
+exists without schema evidence.
+
 ## Workflow: connect, metadata, query
 
 0. **Connect first**: call `Connect` once at the start of a session. It opens the

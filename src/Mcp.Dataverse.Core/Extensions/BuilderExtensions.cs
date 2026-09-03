@@ -20,7 +20,7 @@ public sealed class DataverseGateOptions
 
 public static class BuilderExtensions
 {
-    private enum AuthMode { Delegated, S2S }
+    private enum AuthMode { Delegated, S2S, ManagedIdentity }
 
     public static void AddDataverse(this IHostApplicationBuilder builder)
     {
@@ -38,6 +38,7 @@ public static class BuilderExtensions
         {
             AuthMode.Delegated => CreateDelegatedCredential(),
             AuthMode.S2S => CreateS2SCredential(),
+            AuthMode.ManagedIdentity => CreateManagedIdentityCredential(),
             _ => throw new InvalidOperationException("unreachable")
         };
 
@@ -103,7 +104,8 @@ public static class BuilderExtensions
             null or "" or "auto" => string.IsNullOrEmpty(clientSecret) ? AuthMode.Delegated : AuthMode.S2S,
             "delegated" => AuthMode.Delegated,
             "s2s" => AuthMode.S2S,
-            var other => throw new McpException($"Unknown DATAVERSE_AUTH_MODE '{other}'. Valid values: auto, delegated, s2s.")
+            "managedidentity" => AuthMode.ManagedIdentity,
+            var other => throw new McpException($"Unknown DATAVERSE_AUTH_MODE '{other}'. Valid values: auto, delegated, s2s, managedidentity.")
         };
     }
 
@@ -130,6 +132,14 @@ public static class BuilderExtensions
             throw new McpException("S2S auth needs AZURE_CLIENT_ID, AZURE_CLIENT_SECRET and AZURE_TENANT_ID. See docs/auth.md.");
         }
         return new ClientSecretCredential(tenantId, clientId, clientSecret);
+    }
+
+    private static TokenCredential CreateManagedIdentityCredential()
+    {
+        var clientId = Environment.GetEnvironmentVariable("AZURE_CLIENT_ID");
+        return string.IsNullOrEmpty(clientId)
+            ? new ManagedIdentityCredential()
+            : new ManagedIdentityCredential(clientId);
     }
 
 }
