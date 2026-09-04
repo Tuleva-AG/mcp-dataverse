@@ -14,7 +14,7 @@ namespace Mcp.Dataverse.Core.Tools;
 public sealed class DataverseTool
 {
     private static readonly TimeSpan _defaultCachingDuration = TimeSpan.FromMinutes(2);
-
+    private const int MaxRecordLinks = 20;
     private const string ConnectHint = " Requires a Dataverse connection - if you have not connected yet in this session, call Connect first.";
 
     [McpServerTool, Description("Establishes the Dataverse connection (interactive browser login on first use, afterwards silent via token cache). Call this once before using any other Dataverse tool in a session.")]
@@ -29,8 +29,8 @@ public sealed class DataverseTool
     public static async Task<string> GetMetadataForAllTables(
         Sql4CdsConnection sql4cdsConnection,
         IMemoryCache cache,
-        [Description(@"The metadata columns to retrieve e.g. [""metadataid"", ""logicalname""")] string[] metadataFieldNames,
-        [Description("Condition to filter down the table metadata e.g. isactivity = 1 AND islogicalentity = 1")] string? conditions)
+        [Description(@"The metadata columns to retrieve e.g. [""metadataid"", ""logicalname"". Default is empty.")] string[] metadataFieldNames,
+        [Description("Condition to filter down the table metadata e.g. isactivity = 1 AND islogicalentity = 1. Default is empty")] string? conditions)
     {
         var cacheKey = $"GetMetadataForAllTables_{string.Join(",", metadataFieldNames)}_{conditions}";
         if (cache.TryGetValue(cacheKey, out string? cachedResult)) return cachedResult!;
@@ -50,7 +50,7 @@ public sealed class DataverseTool
         Sql4CdsConnection sql4cdsConnection,
         IMemoryCache cache,
         [Description("The table's logical name e.g. contact, account")] string tableName,
-        [Description(@"The metadata columns to retrieve e.g. [""metadataid"", ""logicalname""")] string[] metadataFieldNames)
+        [Description(@"The metadata columns to retrieve e.g. [""metadataid"", ""logicalname""]. Default is empty.")] string[] metadataFieldNames)
     {
         var cacheKey = $"GetMetadataByTableName_{tableName}_{string.Join(",", metadataFieldNames)}";
         if (cache.TryGetValue(cacheKey, out string? cachedResult)) return cachedResult!;
@@ -83,7 +83,7 @@ public sealed class DataverseTool
         return result;
     }
 
-    [McpServerTool, Description("Retrieve rows for a specific table." + ConnectHint)]
+    [McpServerTool, Description("Retrieve rows for a specific table. Use over Execute SQL if simple retrieve without joins." + ConnectHint)]
     public static async Task<string> GetRowsForTable(
         Sql4CdsConnection sql4cdsConnection,
         [Description("The table's logical name e.g. contact, account")] string tableName,
@@ -377,8 +377,6 @@ public sealed class DataverseTool
             sql4cdsConnection.BypassCustomPlugins = previous;
         }
     }
-
-    private const int MaxRecordLinks = 20;
 
     private static string AppendRecordLinks(string output, string linkTable, Sql4CdsConnection sql4cdsConnection, List<Dictionary<string, object>> rows)
     {
