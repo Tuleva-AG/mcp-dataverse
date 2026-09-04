@@ -99,7 +99,7 @@ Pi can use MCP configuration through [pi-mcp-adapter](https://github.com/nicobai
 ```json
 {
   "mcpServers": {
-    "dataverse-stdio": {
+    "dataverse-mcp": {
       "command": "mcp-dataverse",
       "env": {
         "DATAVERSE_ENVIRONMENT_URL": "https://yourorg.crm.dynamics.com",
@@ -107,7 +107,7 @@ Pi can use MCP configuration through [pi-mcp-adapter](https://github.com/nicobai
         "DATAVERSE_APPROVAL_GATE": "on"
       }
     },
-    "dataverse-sse": {
+    "dataverse-mcp-sse": {
       "url": "https://your-app.azurewebsites.net/api/mcp"
     }
   }
@@ -125,7 +125,7 @@ Add this to `opencode.json` for OpenCode v2:
   "$schema": "https://opencode.ai/config.json",
   "mcp": {
     "servers": {
-      "dataverse-stdio": {
+      "dataverse-mcp": {
         "type": "local",
         "command": ["mcp-dataverse"],
         "environment": {
@@ -134,7 +134,7 @@ Add this to `opencode.json` for OpenCode v2:
           "DATAVERSE_APPROVAL_GATE": "on"
         }
       },
-      "dataverse-sse": {
+      "dataverse-mcp-sse": {
         "type": "remote",
         "url": "https://your-app.azurewebsites.net/api/mcp"
       }
