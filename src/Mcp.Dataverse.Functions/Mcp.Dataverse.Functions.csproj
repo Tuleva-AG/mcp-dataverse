@@ -7,7 +7,7 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="ModelContextProtocol.AspNetCore" Version="0.1.0-preview.11" />
+    <PackageReference Include="ModelContextProtocol.AspNetCore" Version="0.1.0-preview.14" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Mcp.Dataverse.Core\Mcp.Dataverse.Core.csproj" />

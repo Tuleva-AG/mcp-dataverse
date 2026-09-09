@@ -11,7 +11,7 @@
     <PackageReference Include="MarkMpn.Sql4Cds.Engine" Version="10.4.4" />
     <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="9.0.4" />
     
-    <PackageReference Include="ModelContextProtocol" Version="0.1.0-preview.11" />
+    <PackageReference Include="ModelContextProtocol" Version="0.1.0-preview.14" />
     <!-- direct ref to pull patched version of transitive vulnerable dep (NU1903, GHSA-555c-2p6r-68mm) -->
     <PackageReference Include="System.Security.Cryptography.Pkcs" Version="9.0.19" />
   </ItemGroup>

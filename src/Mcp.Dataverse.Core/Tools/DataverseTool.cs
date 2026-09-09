@@ -50,12 +50,12 @@ public sealed class DataverseTool
         Sql4CdsConnection sql4cdsConnection,
         IMemoryCache cache,
         [Description("The table's logical name e.g. contact, account")] string tableName,
-        [Description(@"The metadata columns to retrieve e.g. [""metadataid"", ""logicalname""]. Default is empty.")] string[] metadataFieldNames)
+        [Description(@"The metadata columns to retrieve e.g. [""metadataid"", ""logicalname""]. Default is empty = all columns.")] string[]? metadataFieldNames = null)
     {
-        var cacheKey = $"GetMetadataByTableName_{tableName}_{string.Join(",", metadataFieldNames)}";
+        var cacheKey = $"GetMetadataByTableName_{tableName}_{string.Join(",", metadataFieldNames ?? [])}";
         if (cache.TryGetValue(cacheKey, out string? cachedResult)) return cachedResult!;
 
-        var query = metadataFieldNames.Length > 0 ? $"SELECT {string.Join(",", metadataFieldNames)} FROM metadata.entity" : $"SELECT * FROM metadata.entity";
+        var query = metadataFieldNames?.Length > 0 ? $"SELECT {string.Join(",", metadataFieldNames)} FROM metadata.entity" : $"SELECT * FROM metadata.entity";
         var result = await ExecuteSelect($"{query} WHERE logicalname = '{tableName}'", sql4cdsConnection);
         cache.Set(cacheKey, result, _defaultCachingDuration);
         return result;
